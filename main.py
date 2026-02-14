@@ -4,8 +4,14 @@ import argparse
 
 
 class RevyParser:
-    RE_SCENE_START = re.compile(r'(\\fuldscene|\\forscene)', re.DOTALL)
-    RE_SCENE_END = re.compile(r'\\forscene{}\\')
+    RE_CURLY = re.compile(r"{.*}") # Lidt dirty, da du i princippet kan have text i din \forscene{} uden at få fejl
+    RE_LINEBREAK = re.compile(r"\\\\")
+    RE_FORSCENE = re.compile(r"\\forscene")
+    RE_FULDSCENE = re.compile(r"\\fuldscene")
+    RE_SCENE = re.compile('(' + RE_FORSCENE.pattern + '|' + RE_FULDSCENE.pattern + ')')
+    RE_PERFECT_SCENE = re.compile(RE_SCENE.pattern + RE_CURLY.pattern + RE_LINEBREAK.pattern)
+    
+
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
     RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)', re.DOTALL)
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
@@ -103,11 +109,25 @@ class RevyParser:
                 print(f"[REKVISIT] Rekvisit uden R/P markering: {val.strip()}")
 
     def check_scene_commands(self):
-        for i, line in enumerate(self.lines, start=-1):
-            if self.RE_SCENE_START.search(line):
-                print(line)
-            if self.RE_SCENE_END.search(line):
-                pass  # Slutter korrekt
+        
+        last_command = ""
+        
+        for i in range(len(self.lines)):
+            line = self.lines[i]
+            if self.RE_SCENE.match(line):
+                last_command = line
+    
+                if not self.RE_PERFECT_SCENE.fullmatch(line.strip()):
+                    print(f"[SCENE] Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
+
+                prev, next = self.lines[i-1], self.lines[i+1]
+                if not (prev == "\n" and next == "\n") :
+                    print(f"[SCENE] Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
+
+        # Alt skal slutte på forscenen
+        if not self.RE_FORSCENE.match(last_command):
+            print(f"[SCENE] Slutter ikke på forscenen")
+            
 
 def main():
     parser = argparse.ArgumentParser(description="Validate .tex file")
