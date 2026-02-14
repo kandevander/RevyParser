@@ -39,8 +39,8 @@ Gennemgå den for hver eneste fil du afleverer.
 - [x] Kommandoen står på sin egen linje
 - [x] Der er blank linje over og under scenekommando
 - [x] Eventuelle sceneopsætninger står i {} ved \fuldscene
-- [ ] Sceneopsætning er også noteret i regibemærkning
-- [ ] Ingen fuldscene → fuldscene overgang (hverken internt eller mellem scener)
+- [x] Sceneopsætning er også noteret i regibemærkning
+- [x] Ingen fuldscene → fuldscene overgang (hverken internt eller mellem scener)
 
 ---
 
