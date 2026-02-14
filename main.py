@@ -263,7 +263,7 @@ def main():
         if path.is_file() and path.suffix == ".tex":
             tex_files.append(path)
         elif path.is_dir():
-            tex_files.extend(path.glob("*.tex"))
+            tex_files.extend(path.glob("**/*.tex"))
         else:
             output += f"{path_str} er ikke en fil eller mappe\n"
 
