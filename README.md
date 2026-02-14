@@ -13,9 +13,11 @@ Der outputtes i markdown format.
 
 ## Ka' du måske lig' vis' mig en eksempel eller to?
 
-StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex`:
+StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex` og kører følgende kommando:
 
-`python main.py ../revy/stangdenniss_sjove_sketch.tex`
+`python main.py revy/stangdenniss_sjove_sketch.tex`
+
+Det giver følgende output i terminalen:
 
 ```
 # stangdenniss_sjove_sketch.tex
@@ -51,7 +53,9 @@ StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex`:
 
 Pastasalaten vil gerne se fejl i alle sine sketches opbevaret i mappen `hahaLolGRINERENstads` og have outputtet som en fil, da han har skrevet 3700 fisk, og det er lidt uoverskueligt i terminalen:
 
-`python main.py ../revy/hahaLolGRINERENstads -o output.md`
+`python main.py revy/hahaLolGRINERENstads -o output.md`
+
+Efter han har kørt kommandoen kan han finde outputtet i `output.md`
 
 ## TODO
 * Ornli meget cleanup
