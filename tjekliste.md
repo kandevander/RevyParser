@@ -33,14 +33,13 @@ Gennemgå den for hver eneste fil du afleverer.
 
 # Kommandoer
 
-- [ ] Starter med \fuldscene{}\\ eller \forscene{}\\
-- [ ] Slutter med \forscene{}\\
-- [ ] Der bruges altid \\ efter kommando
-- [ ] Kommandoen står på sin egen linje
-- [ ] Der er blank linje over og under scenekommando
-- [ ] Eventuelle sceneopsætninger står i {} ved \fuldscene
+- [x] Starter med \fuldscene{}\\ eller \forscene{}\\
+- [x] Slutter med \forscene{}\\
+- [x] Der bruges altid \\ efter kommando
+- [x] Kommandoen står på sin egen linje
+- [x] Der er blank linje over og under scenekommando
+- [x] Eventuelle sceneopsætninger står i {} ved \fuldscene
 - [ ] Sceneopsætning er også noteret i regibemærkning
-- [ ] Der er mindst ét sceneskift
 - [ ] Ingen fuldscene → fuldscene overgang (hverken internt eller mellem scener)
 
 ---
