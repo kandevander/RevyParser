@@ -5,6 +5,7 @@ import argparse
 
 class RevyParser:
     RE_CURLY = re.compile(r"{.*}") # Lidt dirty, da du i princippet kan have text i din \forscene{} uden at få fejl
+    RE_CURLY_EMPTY = re.compile(r"{}")
     RE_LINEBREAK = re.compile(r"\\\\")
     RE_FORSCENE = re.compile(r"\\forscene")
     RE_FULDSCENE = re.compile(r"\\fuldscene")
@@ -110,19 +111,26 @@ class RevyParser:
 
     def check_scene_commands(self):
         
-        last_command = ""
+        last_command, last_index = "", -1
         
         for i in range(len(self.lines)):
-            line = self.lines[i]
+            line = self.lines[i].strip()
             if self.RE_SCENE.match(line):
-                last_command = line
+
+                if self.RE_FULDSCENE.match(line) and self.RE_CURLY_EMPTY.search(line):
+                    print(f"[SCENE] Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
+
+                if self.RE_FULDSCENE.match(line) and self.RE_FULDSCENE.match(last_command):
+                    print(f'[SCENE] Fuldscene -> fuldscene overgang fra linje {last_index+1} til linje {i+1}')
     
-                if not self.RE_PERFECT_SCENE.fullmatch(line.strip()):
+                if not self.RE_PERFECT_SCENE.fullmatch(line):
                     print(f"[SCENE] Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
 
                 prev, next = self.lines[i-1], self.lines[i+1]
                 if not (prev == "\n" and next == "\n") :
                     print(f"[SCENE] Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
+
+                last_command, last_index = line, i
 
         # Alt skal slutte på forscenen
         if not self.RE_FORSCENE.match(last_command):
