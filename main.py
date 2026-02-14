@@ -138,6 +138,11 @@ class RevyParser:
 
             # I assume the last paren_item is the role shorthand
             paren_items = self.RE_PAREN_ITEM.findall(item)
+
+            if len(paren_items) == 0: 
+                print(f"Glemt rolle forkortelse for rollen: {item}")
+                continue
+            
             short_hand = paren_items[-1]
 
             if short_hand in short_hands:
@@ -194,7 +199,7 @@ def main():
     args = parser.parse_args()
 
     tex_files = []
-    for path_str in args.paths:
+    for path_str in args.path:
         path = Path(path_str)
         if path.is_file() and path.suffix == ".tex":
             tex_files.append(path)
@@ -204,9 +209,10 @@ def main():
             print(f"{path_str} er ikke en fil eller mappe")
 
         for f in tex_files:
-            print(f"--- tjekker {f} ---")
+            print(f"--- Checker {f} ---")
             validator = RevyParser(f)
             validator.validate()
+            print("\n")
 
 
 
