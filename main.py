@@ -20,14 +20,15 @@ class RevyParser:
     RE_ITEM = re.compile(r'\\item\s.+')
     RE_PAREN_ITEM = re.compile(r'\(.+?\)') # '?' is not greedy therefore matches closest parentheses
     
-    
-    #RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)')
+    RE_REKVISITTER = re.compile(r'\\begin{Rekvisitter}.*\\end{Rekvisitter}', re.DOTALL)
+
+    RE_LYDEFFEKTER = re.compile(r'\\begin{Lydeffekter}.*\\end{Lydeffekter}', re.DOTALL)
 
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
     
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
-    RE_LYDEFFEKTER = re.compile(r'\\lyd{(.+?)}')
-    RE_REKVISITTER = re.compile(r'\\begin{(Rekvisitter)}(.*?)\\end{\1}', re.DOTALL)
+    
+    
     RE_HASHTAG = re.compile(r'#')
     RE_COLON = re.compile(r':')
     RE_GAASEOEJNE = re.compile(r'[“”]')
@@ -48,6 +49,9 @@ class RevyParser:
         self.path = path
         self.lines = []
         self.content = ""
+        self.errors: map[str, list[str]] = {} 
+        for key in ["Header", "Rekvisitter", "Persongalleri", "Lydeffekter", "Sceneskift", "Diverse", "Warnings"]:
+            self.errors[key] = []
 
     def validate(self):
         self._load_file()
@@ -71,9 +75,9 @@ class RevyParser:
     def check_filename(self):
         basename = os.path.basename(self.path)
         if " " in basename:
-            print(f"[FILNAVN] Filnavn indeholder mellemrum: {basename}")
+            self.errors["Header"].append(f"[FILNAVN] Filnavn indeholder mellemrum: {basename}")
 
-    def check_title(self): #TODO ensure this is also checked for songs
+    def check_title(self):
         for line in self.lines:
             stripped = line.strip()
             if stripped and not stripped.startswith("%"):
@@ -83,23 +87,21 @@ class RevyParser:
                 else:
                     title = stripped
                 if self.RE_HASHTAG.search(title):
-                    print(f"[TITEL] Titel indeholder #: {title}")
+                    self.errors["Header"].append(f"Titel indeholder #: {title}")
                 if self.RE_COLON.search(title):
-                    print(f"[TITEL] Titel indeholder kolon: {title}")
+                    self.errors["Header"].append(f"Titel indeholder kolon: {title}")
                 if self.RE_BACKSLASH.search(title):
-                    print(f"[TITEL] Titel indeholder et backslash eller kommando {title}")
+                    self.errors["Header"].append(f"Titel indeholder et backslash eller kommando: {title}")
                 if self.RE_PERCENT.search(title):
-                    print(f"[TITEL] Titel indeholder et procenttegn {title}")
+                    self.errors["Header"].append(f"Titel indeholder et procenttegn: {title}")
                 if self.RE_DOLLARSIGN.search(title):
-                    print(f"[TITEL] Titel indeholder et dollar tegn {title}")
+                    self.errors["Header"].append(f"Titel indeholder et dollar tegn: {title}")
                 if self.RE_SEMICOLON.search(title):
-                    print(f"[TITEL] Titel indeholder et semikolon {title}")
+                    self.errors["Header"].append(f"Titel indeholder et semikolon: {title}")
                 if self.RE_GAASEOEJNE.search(title):
-                    print(f"[TITEL] Titel indeholder gåseøjne {title}")
-                if title == "navn":
-                    print(f"[TITEL] Titel er ugyldig: {title}")
+                    self.errors["Header"].append(f"Titel indeholder gåseøjne: {title}")
                 if title.lower() != os.path.splitext(os.path.basename(self.path))[0].lower():
-                    print(f"[TITEL] Titel og filnavn er ikke det samme {title}")
+                    self.errors["Header"].append(f"Titel og filnavn er ikke det samme: {title}")
                 break
 
     def check_strofe(self):
@@ -112,7 +114,7 @@ class RevyParser:
         if not is_sketch:
             return
         if self.RE_BEGIN_STROFE.search(self.content):
-            print("[STROFE] Strofe-miljø fundet i sketch. Du skal ændre det fra \\begin{Sketch} til \\begin{Sang}")
+            self.errors["Diverse"].append("Strofe-miljø fundet i sketch, det er ulovligt!. Sange med replikker SKAL TeX'es som en sang. Altså \begin{Sang}")
 
 
     def check_tid(self):
@@ -120,9 +122,9 @@ class RevyParser:
         if match:
             tid = match.group(1)
             if ":" not in tid:
-                print(f"[TID] Tidsformat ugyldigt: {tid}")
+                self.errros["Header"].append(f"Tidsformat ulovligt: {tid}")
         else:
-            print("[TID] Manglende \\tid")
+            self.errors["Header"].append("Manglende eller ulovlig \\tid")
 
     def check_roles(self):
         roles, short_hands = [], []
@@ -130,29 +132,28 @@ class RevyParser:
 
 
         if not persongalleri:
-            print("Der mangler et persongalleri. Fyfy!")
+            self.errors["Persongalleri"].append("Der mangler et persongalleri. Fyfy!")
             return
 
         persongalleri = persongalleri.group()
 
         for item in self.RE_ITEM.findall(persongalleri):
-            #print(item)
 
             item = item.strip().lower()
 
             if not self.RE_ROLE_DECLARATION.search(item):
-                print(f"Manglende \\sketchrolle eller \\sangrolle i rollen: {item}")
+                self.errors["Persongalleri"].append(f"Manglende \\sketchrolle eller \\sangrolle i rollen: {item}")
             
             if self.RE_ILLEGAL_ROLE_DECL.search(item):
-                print(f"Ulovlig {{}} efter rolle type i {item}")
+                self.errors["Persongalleri"].append(f"Ulovlig {{}} efter rolle type i {item}")
 
             name = item.strip('\\item ').split(' (')[0] #eww
 
             if name in roles:
-                print(f'Duplikeret rollenavn: {name}')
+                self.errors["Persongalleri"].append(f'Duplikeret rollenavn: {name}')
 
             if ',' in name:
-                print(f"Ulovligt komma i rollenavn: {name}")
+                self.errors["Persongalleri"].append(f"Ulovligt komma i rollenavn: {name}")
 
             roles.append(name)
 
@@ -160,17 +161,17 @@ class RevyParser:
             paren_items = self.RE_PAREN_ITEM.findall(item)
 
             if len(paren_items) == 0: 
-                print(f"Glemt rolle forkortelse for rollen: {item}")
+                self.errors["Persongalleri"].append(f"Glemt rolle forkortelse for rollen: {item}")
                 continue
             
             short_hand = paren_items[-1]
 
             if short_hand in short_hands:
-                print(f'Duplikeret rolle forkortelse: {short_hand}')
+                self.errors["Persongalleri"].append(f'Duplikeret rolle forkortelse: {short_hand}')
 
             short_hands.append(short_hand)
 
-    def check_band(self):
+    def check_band(self): #TODO virker det her
         is_sang = False
         for line in self.lines:
             stripped = line.strip()
@@ -183,23 +184,38 @@ class RevyParser:
 
         matches = self.RE_BAND.findall(self.content)
         if not matches:
-            print("[BAND] Ingen bandkommentarer fundet")
+            self.errors["Header"].append("Sange SKAL have en bandkommentar")
         else:
             for match in matches:
                 if not match.strip():
-                    print("[BAND] Tomt bandkommentar-miljø")
+                    self.errors["Header"].append("Tomt bandkommentar-miljø")
 
     def check_lydeffekter(self):
-        matches = self.RE_LYDEFFEKTER.findall(self.content)
-        # Placeholder
-        return matches
+        lydeffekter = self.RE_LYDEFFEKTER.search(self.content)
+
+        if not lydeffekter: return
+
+        lydeffekter = lydeffekter.group()
+
+        items = self.RE_ITEM.findall(lydeffekter)
+        if len(items) == 0: 
+            self.errors["Lydeffekter"].append("Tomt lydeffekter environment. Hvis der ingen lydeffekter er, skal der ikke være noget environment")
 
     def check_rekvisitter(self):
-        matches = self.RE_REKVISITTER.findall(self.content)
-        for env, val in matches:
-            if "(R)" not in val and "(P)" not in val:
-                print(f"[REKVISIT] Rekvisit uden R/P markering: {val.strip()}")
+        rekvisitter = self.RE_REKVISITTER.search(self.content)
 
+        if not rekvisitter: return
+
+        rekvisitter = rekvisitter.group()
+
+        items = self.RE_ITEM.findall(rekvisitter)
+        if len(items) == 0: 
+            self.errors["Rekvisitter"].append("Tomt rekvisitter environment. Hvis der ingen rekvisitter er, skal der ikke være noget environment")
+            return
+        
+        for item in items:
+            if "(R)" not in item and "(P)" not in item:
+                self.errors["Rekvisitter"].append(f"Rekvisit uden R/P markering: {item}")
 
     def check_scene_commands(self):
 
@@ -210,23 +226,24 @@ class RevyParser:
             if self.RE_SCENE.match(line):
 
                 if self.RE_FULDSCENE.match(line) and self.RE_CURLY_EMPTY.search(line):
-                    print(f"[SCENE] Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
+                    self.errors["Warnings"].append(f"Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
 
                 if self.RE_FULDSCENE.match(line) and self.RE_FULDSCENE.match(last_command):
-                    print(f'[SCENE] Fuldscene -> fuldscene overgang fra linje {last_index+1} til linje {i+1}')
+                    self.errors["Sceneskift"].append(f'Fuldscene -> fuldscene overgang fra linje {last_index+1} til linje {i+1}')
 
                 if not self.RE_PERFECT_SCENE.fullmatch(line):
-                    print(f"[SCENE] Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
+                    self.errors["Sceneskift"].append(f"Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
+
 
                 prev, next = self.lines[i-1], self.lines[i+1]
                 if not (prev == "\n" and next == "\n") :
-                    print(f"[SCENE] Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
+                    self.errors["Sceneskift"].append(f"Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
 
                 last_command, last_index = line, i
 
         # Alt skal slutte på forscenen
         if not self.RE_FORSCENE.match(last_command):
-            print(f"[SCENE] Slutter ikke på forscenen")
+            self.errors["Sceneskift"].append(f"[SCENE] Slutter ikke på forscenen")
 
 def main():
     parser = argparse.ArgumentParser(description="Validate .tex file")
