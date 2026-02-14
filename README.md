@@ -21,4 +21,16 @@ Pastasalaten vil gerne se fejl i alle sine sketches opbevaret i mappen `hahaLolG
 
 `python main.py ../revy/hahaLolGRINERENstads -o output.md`
 
+## TODO
+* Ornli meget cleanup
+* Online interface på tket.dk/revy
+  * Evt. forsøge at compile det på prodekanus så der kan raporteres compile-fejl
+* Pænere output i terminalen, da det er lidt yuck at se på markdown der ikke er renderet
+* Bunde en bajer
+* Nuke revytex og manus.py til grunden og starte helt forfra (ambitiøs)
 
+
+## Jeg synes koden er grim/dårlig/kedelig/forkert 
+Vi har kodet det med tømmermænd, forbedringer modtages med kyshånd <3
+
+/HH & CERM24/25
