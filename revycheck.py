@@ -100,7 +100,12 @@ class RevyParser:
                     self.errors["Header"].append(f"Titel indeholder et semikolon: {title}")
                 if self.RE_GAASEOEJNE.search(title):
                     self.errors["Header"].append(f"Titel indeholder gåseøjne: {title}")
-                if title.lower() != os.path.splitext(os.path.basename(self.path))[0].lower():
+
+                title = title.lower()
+                filename = os.path.splitext(os.path.basename(self.path))[0].lower()
+                title = title.replace(" ","_")
+                 
+                if title != filename:
                     self.errors["Header"].append(f"Titel og filnavn er ikke det samme: {title}")
                 break
 
@@ -114,7 +119,7 @@ class RevyParser:
         if not is_sketch:
             return
         if self.RE_BEGIN_STROFE.search(self.content):
-            self.errors["Diverse"].append("Strofe-miljø fundet i sketch, det er ulovligt!. Sange med replikker SKAL TeX'es som en sang. Altså \begin{Sang}")
+            self.errors["Diverse"].append("Strofe-miljø fundet i sketch, det er ulovligt!. Sange med replikker SKAL TeX'es som en sang. Altså \\begin{Sang}")
 
 
     def check_tid(self):
@@ -240,9 +245,12 @@ class RevyParser:
                 if not self.RE_PERFECT_SCENE.fullmatch(line):
                     self.errors["Sceneskift"].append(f"Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
 
-
+                
                 prev, next = self.lines[i-1], self.lines[i+1]
-                if not (prev == "\n" and next == "\n") :
+                prev_blank = not prev.strip() # Den tomme streng er False. Fuck python
+                next_blank = not next.strip()
+                
+                if not (prev_blank and next_blank) :
                     self.errors["Sceneskift"].append(f"Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
 
                 last_command, last_index = line, i
@@ -284,16 +292,16 @@ def generate_report(tex_files):
             if not values:
                 continue
 
-            output += f"\n### {key}\n"
+            output += f"### {key}\n"
             for val in values:
                 output += f"* {val}\n"
 
         output += (
-            "\n\n### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
+            "### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
             "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
             "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
             "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
-            "\n\n---\n\n"
+            "---"
         )
 
     return output
