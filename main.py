@@ -12,8 +12,18 @@ class RevyParser:
     RE_SCENE = re.compile('(' + RE_FORSCENE.pattern + '|' + RE_FULDSCENE.pattern + ')')
     RE_PERFECT_SCENE = re.compile(RE_SCENE.pattern + RE_CURLY.pattern + RE_LINEBREAK.pattern)
 
+    RE_PERSONGALLERI = re.compile(r'\\begin{Persongalleri}.*\\end{Persongalleri}', re.DOTALL)
+    RE_ROLE_DECLARATION = re.compile(r'(\\sketchrolle)|(\\sangrolle)')
+    RE_ILLEGAL_ROLE_DECL = re.compile('(' + RE_ROLE_DECLARATION.pattern + ')' + RE_CURLY.pattern)
+
+    RE_ITEM = re.compile(r'\\item\s.+')
+    RE_PAREN_ITEM = re.compile(r'\(.+?\)') # '?' is not greedy therefore matches closest parentheses
+    
+    
+    #RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)')
+
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
-    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)')
+    
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
     RE_LYDEFFEKTER = re.compile(r'\\lyd{(.+?)}')
     RE_REKVISITTER = re.compile(r'\\begin{(Rekvisitter)}(.*?)\\end{\1}', re.DOTALL)
@@ -55,7 +65,7 @@ class RevyParser:
         if " " in basename:
             print(f"[FILNAVN] Filnavn indeholder mellemrum: {basename}")
 
-    def check_title(self):
+    def check_title(self): #TODO ensure this is also checked for songs
         for line in self.lines:
             stripped = line.strip()
             if stripped and not stripped.startswith("%"):
@@ -94,26 +104,45 @@ class RevyParser:
             print("[TID] Manglende \\tid")
 
     def check_roles(self):
-        roles = []
-        for item in self.RE_ITEM.findall(self.content):
-            name = item.strip()
-            lname = name.lower()
+        roles, short_hands = [], []
+        persongalleri = self.RE_PERSONGALLERI.search(self.content)
 
-            if lname in roles:
-                print(f"[ROLLE] Duplikatrolle: {name}")
-            roles.append(lname)
 
-            if "," in name:
-                print(f"[ROLLE] Komma i rollenavn: {name}")
+        if not persongalleri:
+            print("Der mangler et persongalleri. Fyfy!")
+            return
 
-            if "{" in name:
-                print(
-                    "[ROLLE] Krølleparenteser efter \\sketchrolle eller \\sangrolle: "
-                    f"{name}"
-                )
+        persongalleri = persongalleri.group()
 
-        if not roles:
-            print("[ROLLE] Ingen roller fundet")
+        for item in self.RE_ITEM.findall(persongalleri):
+            #print(item)
+
+            item = item.strip().lower()
+
+            if not self.RE_ROLE_DECLARATION.search(item):
+                print(f"Manglende \\sketchrolle eller \\sangrolle i rollen: {item}")
+            
+            if self.RE_ILLEGAL_ROLE_DECL.search(item):
+                print(f"Ulovlig {{}} efter rolle type i {item}")
+
+            name = item.strip('\\item ').split(' (')[0] #eww
+
+            if name in roles:
+                print(f'Duplikeret rollenavn: {name}')
+
+            if ',' in name:
+                print(f"Ulovligt komma i rollenavn: {name}")
+
+            roles.append(name)
+
+            # I assume the last paren_item is the role shorthand
+            paren_items = self.RE_PAREN_ITEM.findall(item)
+            short_hand = paren_items[-1]
+
+            if short_hand in short_hands:
+                print(f'Duplikeret rolle forkortelse: {short_hand}')
+
+            short_hands.append(short_hand)
 
     def check_band(self, is_sang=False):
         if is_sang and not self.RE_BAND.search(self.content):
