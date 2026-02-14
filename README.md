@@ -1,4 +1,4 @@
-# Hva er'd?
+# Hva' er'd?
 
 Der er swær at lave revytex. Det er med denne frække sag forhåbentligt lidt nememre at lave revytex. Det er IKKE en substitut for at bruge sin hjerne og tænke selv :)
 
@@ -11,7 +11,7 @@ Programmet læser filen/filerne på `path` og outputter eventuelle fejl/mangler 
 
 Der outputtes i markdown format.
 
-## Eksempler
+## Ka' du måske lig' vis' mig en eksempel eller to?
 
 StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex`:
 
