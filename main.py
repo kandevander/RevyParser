@@ -7,13 +7,18 @@ class RevyParser:
     RE_SCENE_START = re.compile(r'(\\fuldscene|\\forscene)', re.DOTALL)
     RE_SCENE_END = re.compile(r'\\forscene{}\\')
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
-    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)', re.DOTALL)
+    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)')
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
     RE_LYDEFFEKTER = re.compile(r'\\lyd{(.+?)}')
     RE_REKVISITTER = re.compile(r'\\begin{(Rekvisitter)}(.*?)\\end{\1}', re.DOTALL)
     RE_HASHTAG = re.compile(r'#')
     RE_COLON = re.compile(r':')
-    RE_GAASEOEJNE = re.compile(r'[“”]')
+    RE_BACKSLASH = re.compile(r'\\')
+    RE_DOLLARSIGN = re.compile(r'\$')
+    RE_PERCENT = re.compile(r'%')
+    RE_SEMICOLON = re.compile(r';')
+    RE_GAASEOEJNE = re.compile(r'[“”„"]')
+    RE_BEGIN_SKETCH = re.compile(r"\\begin\{Sketch}\{([^}]*)}")
 
     def __init__(self, path):
         self.path = path
@@ -43,17 +48,34 @@ class RevyParser:
         if " " in basename:
             print(f"[FILNAVN] Filnavn indeholder mellemrum: {basename}")
 
+
     def check_title(self):
         for line in self.lines:
             stripped = line.strip()
             if stripped and not stripped.startswith("%"):
-                title = stripped
+                match = self.RE_BEGIN_SKETCH.search(stripped)
+                if match:
+                    title = match.group(1)
+                else:
+                    title = stripped
                 if self.RE_HASHTAG.search(title):
                     print(f"[TITEL] Titel indeholder #: {title}")
                 if self.RE_COLON.search(title):
                     print(f"[TITEL] Titel indeholder kolon: {title}")
-                if title == "Navn":
+                if self.RE_BACKSLASH.search(title):
+                    print(f"[TITEL] Titel indeholder et backslash eller kommando {title}")
+                if self.RE_PERCENT.search(title):
+                    print(f"[TITEL] Titel indeholder et procenttegn {title}")
+                if self.RE_DOLLARSIGN.search(title):
+                    print(f"[TITEL] Titel indeholder et dollar tegn {title}")
+                if self.RE_SEMICOLON.search(title):
+                    print(f"[TITEL] Titel indeholder et semikolon {title}")
+                if self.RE_GAASEOEJNE.search(title):
+                    print(f"[TITEL] Titel indeholder gåseøjne {title}")
+                if title == "navn":
                     print(f"[TITEL] Titel er ugyldig: {title}")
+                if title.lower() != os.path.splitext(os.path.basename(self.path))[0].lower():
+                    print(f"[TITEL] Titel og filnavn er ikke det samme {title}")
                 break
 
     def check_tid(self):
@@ -70,10 +92,11 @@ class RevyParser:
         for item in self.RE_ITEM.findall(self.content):
             name = item.strip()
             lname = name.lower()
-
+            #print(item)
             if lname in roles:
                 print(f"[ROLLE] Duplikatrolle: {name}")
             roles.append(lname)
+            print(roles)
 
             if "," in name:
                 print(f"[ROLLE] Komma i rollenavn: {name}")
@@ -105,7 +128,7 @@ class RevyParser:
     def check_scene_commands(self):
         for i, line in enumerate(self.lines, start=-1):
             if self.RE_SCENE_START.search(line):
-                print(line)
+                pass
             if self.RE_SCENE_END.search(line):
                 pass  # Slutter korrekt
 

@@ -7,19 +7,18 @@ Gennemgå den for hver eneste fil du afleverer.
 
 # Filnavn
 
-- [ ] Filnavn matcher titel
-- [ ] Underscore (_) bruges i stedet for mellemrum
-- [ ] Kun tilladte postfixes bruges (_lang_version / _uden_hanne)
+- [x] Filnavn matcher titel
+- [x] Underscore (_) bruges i stedet for mellemrum
+- [x] Kun tilladte postfixes bruges (_lang_version / _uden_hanne)
 
 ---
 
 # Titel
 
-- [ ] Ingen matematik ($, \mathbb{}, osv.)
-- [ ] Ingen hashtag (#)
-- [ ] Ingen kolon (:)
-- [ ] Ingen TK-kommandoer eller specialmakroer (fx \CERM, \ikonINKA)
-- [ ] Titel er ikke "Navn"
+- [x] Ingen matematik ($, \mathbb{}, osv.)
+- [x] Ingen hashtag (#)
+- [x] Ingen kolon (:)
+- [x] Titel er ikke "Navn"
 
 ---
 
