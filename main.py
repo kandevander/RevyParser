@@ -124,7 +124,7 @@ class RevyParser:
             if tid.startswith("0:") and int(tid.split(":")[1]) < 45:
                 self.errors["Header"].append(f"Tidsangivelse under 45 sekunder: {tid}")
             if ":" not in tid:
-                self.errros["Header"].append(f"Tidsformat ulovligt: {tid}")
+                self.errors["Header"].append(f"Tidsformat ulovligt: {tid}")
         else:
             self.errors["Header"].append("Manglende eller ulovlig \\tid")
 
