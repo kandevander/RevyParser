@@ -4,11 +4,10 @@ import argparse
 
 
 class RevyParser:
-    RE_SCENE_START = re.compile(r'\\(fuldscene|forscene){(.*?)}\\')
+    RE_SCENE_START = re.compile(r'(\\fuldscene|\\forscene)', re.DOTALL)
     RE_SCENE_END = re.compile(r'\\forscene{}\\')
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
-    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)?\s?(\\dreng|\\pige)')
-    RE_ROLE_MARKERS = re.compile(r'\\(dreng|pige)')
+    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)', re.DOTALL)
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
     RE_LYDEFFEKTER = re.compile(r'\\lyd{(.+?)}')
     RE_REKVISITTER = re.compile(r'\\begin{(Rekvisitter)}(.*?)\\end{\1}', re.DOTALL)
@@ -70,7 +69,6 @@ class RevyParser:
         roles = []
         for item in self.RE_ITEM.findall(self.content):
             name = item.strip()
-            print(name)
             lname = name.lower()
 
             if lname in roles:
@@ -80,7 +78,7 @@ class RevyParser:
             if "," in name:
                 print(f"[ROLLE] Komma i rollenavn: {name}")
 
-            if name.endswith("{}"):
+            if "{" in name:
                 print(
                     "[ROLLE] Krølleparenteser efter \\sketchrolle eller \\sangrolle: "
                     f"{name}"
@@ -105,9 +103,9 @@ class RevyParser:
                 print(f"[REKVISIT] Rekvisit uden R/P markering: {val.strip()}")
 
     def check_scene_commands(self):
-        for i, line in enumerate(self.lines):
+        for i, line in enumerate(self.lines, start=-1):
             if self.RE_SCENE_START.search(line):
-                pass  # Starter korrekt
+                print(line)
             if self.RE_SCENE_END.search(line):
                 pass  # Slutter korrekt
 

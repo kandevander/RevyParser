@@ -53,10 +53,7 @@ Gennemgå den for hver eneste fil du afleverer.
 - [x] Ingen komma i rollenavn
 - [x] Alle roller er unikke (case-insensitive)
 - [x] Alle roller har \sketchrolle eller \sangrolle
-- [ ] Ingen {} efter \sketchrolle / \sangrolle
-- [ ] Kønsmarkering (\dreng / \pige) bruges korrekt
-- [ ] Ingen rolle har både \dreng og \pige
-- [ ] Dans er tydeligt angivet hvis relevant
+- [x] Ingen {} efter \sketchrolle / \sangrolle
 
 ---
 
