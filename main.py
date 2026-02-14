@@ -121,6 +121,8 @@ class RevyParser:
         match = self.RE_TID.search(self.content)
         if match:
             tid = match.group(1)
+            if tid.startswith("0:") and int(tid.split(":")[1]) < 45:
+                self.errors["Header"].append(f"Tidsangivelse under 45 sekunder: {tid}")
             if ":" not in tid:
                 self.errros["Header"].append(f"Tidsformat ulovligt: {tid}")
         else:
