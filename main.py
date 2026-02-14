@@ -1,6 +1,7 @@
 import os
 import re
 import argparse
+from pathlib import Path
 
 
 class RevyParser:
@@ -160,13 +161,26 @@ class RevyParser:
 
 def main():
     parser = argparse.ArgumentParser(description="Validate .tex file")
-    parser.add_argument("files", nargs="+", help="Filenames to check")
+    parser.add_argument("path", nargs="+", help="Filenames or directory to check")
     args = parser.parse_args()
 
-    for f in args.files:
-        print(f"--- checker {f} ---")
-        validator = RevyParser(f)
-        validator.validate()
+    tex_files = []
+    for path_str in args.paths:
+        path = Path(path_str)
+        if path.is_file() and path.suffix == ".tex":
+            tex_files.append(path)
+        elif path.is_dir():
+            tex_files.extend(path.glob("*.tex"))
+        else:
+            print(f"{path_str} er ikke en fil eller mappe")
+
+        for f in tex_files:
+            print(f"--- tjekker {f} ---")
+            validator = RevyParser(f)
+            validator.validate()
+
+
+
 
 
 if __name__ == "__main__":
