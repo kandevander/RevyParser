@@ -26,7 +26,13 @@ class RevyParser:
     RE_PERCENT = re.compile(r'%')
     RE_SEMICOLON = re.compile(r';')
     RE_GAASEOEJNE = re.compile(r'[“”„"]')
-    RE_BEGIN_SKETCH = re.compile(r"\\begin\{Sketch}\{([^}]*)}")
+    RE_BEGIN_SKETCH_OR_SANG = re.compile(
+        r"\\begin\{(?:Sketch|Sang)}"  # Match Sketch or Sang
+        r"(?:\[[^]]*])?" 
+        r"\{([^}]*)}"
+    )
+    RE_BEGIN_STROFE = re.compile(
+        r"\\begin\{Strofe}")
 
     def __init__(self, path):
         self.path = path
@@ -43,6 +49,7 @@ class RevyParser:
         self.check_lydeffekter()
         self.check_rekvisitter()
         self.check_scene_commands()
+        self.check_strofe()
 
 
     def _load_file(self):
@@ -60,7 +67,7 @@ class RevyParser:
         for line in self.lines:
             stripped = line.strip()
             if stripped and not stripped.startswith("%"):
-                match = self.RE_BEGIN_SKETCH.search(stripped)
+                match = self.RE_BEGIN_SKETCH_OR_SANG.search(stripped)
                 if match:
                     title = match.group(1)
                 else:
@@ -84,6 +91,19 @@ class RevyParser:
                 if title.lower() != os.path.splitext(os.path.basename(self.path))[0].lower():
                     print(f"[TITEL] Titel og filnavn er ikke det samme {title}")
                 break
+
+    def check_strofe(self):
+        is_sketch = False
+        for line in self.lines:
+            stripped = line.strip()
+            if stripped.startswith(r"\begin{Sketch}"):
+                is_sketch = True
+                break
+        if not is_sketch:
+            return
+        if self.RE_BEGIN_STROFE.search(self.content):
+            print("[STROFE] Strofe-miljø fundet i sketch. Du skal ændre det fra \\begin{Sketch} til \\begin{Sang}")
+
 
     def check_tid(self):
         match = self.RE_TID.search(self.content)
@@ -116,9 +136,24 @@ class RevyParser:
         if not roles:
             print("[ROLLE] Ingen roller fundet")
 
-    def check_band(self, is_sang=False):
-        if is_sang and not self.RE_BAND.search(self.content):
-            print("[SANG] Manglende bandkommentar")
+    def check_band(self):
+        is_sang = False
+        for line in self.lines:
+            stripped = line.strip()
+            if stripped.startswith(r"\begin{Sang}") or stripped.startswith(r"\begin{Sang}["):
+                is_sang = True
+                break
+
+        if not is_sang:
+            return
+
+        matches = self.RE_BAND.findall(self.content)
+        if not matches:
+            print("[BAND] Ingen bandkommentarer fundet")
+        else:
+            for match in matches:
+                if not match.strip():
+                    print("[BAND] Tomt bandkommentar-miljø")
 
     def check_lydeffekter(self):
         matches = self.RE_LYDEFFEKTER.findall(self.content)
@@ -165,7 +200,7 @@ def main():
     args = parser.parse_args()
 
     tex_files = []
-    for path_str in args.paths:
+    for path_str in args.path:
         path = Path(path_str)
         if path.is_file() and path.suffix == ".tex":
             tex_files.append(path)

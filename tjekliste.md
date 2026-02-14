@@ -57,8 +57,8 @@ Gennemgå den for hver eneste fil du afleverer.
 
 # Sange
 
-- [ ] Der er altid bandkommentar
-- [ ] Ingen typografiske gåseøjne (“ ”)
+- [x] Der er altid bandkommentar
+- [x] Ingen typografiske gåseøjne (“ ”)
 - [ ] Sketch med sang er tex’et som sang
 
 ---
@@ -73,40 +73,26 @@ Gennemgå den for hver eneste fil du afleverer.
 # Rekvisitter
 
 - [ ] Ingen rekvisit-environment hvis der ingen er
-- [ ] Alle rekvisitter er markeret (R) eller (P)
-- [ ] Beskrivelser er selvforklarende
-
----
-
-# Footer
-
-- [ ] Kun navne/kammernavne (ikke "Credits:")
-- [ ] \TKprefix{} bruges korrekt
+- [x] Alle rekvisitter er markeret (R) eller (P)
 
 ---
 
 # Generelt
-
-- [ ] Ingen fancy TeX
-- [ ] Ingen nye pakker importeres
-- [ ] Filen compiler uden fejl
 - [ ] OverLeaf warnings/errors er tjekket
-- [ ] Filen er uploadet korrekt sted
 
 ---
 
 # Kritiske fejl (stopper build)
 
-- [ ] Forkert filnavn
-- [ ] Kolon i titel
-- [ ] Manglende \tid
-- [ ] Ugyldigt tidsformat
+- [x] Forkert filnavn
+- [x] Kolon i titel
+- [x] Manglende \tid
+- [x] Ugyldigt tidsformat
 - [ ] Manglende bandkommentar i sang
-- [ ] Ingen roller
+- [x] Ingen roller
 - [ ] Duplikatroller
-- [ ] Import af pakker
-- [ ] Manglende start/slut \fuldscene/\forscene
-- [ ] Fuldscene → fuldscene overgang
+- [x] Manglende start/slut \fuldscene/\forscene
+- [x] Fuldscene → fuldscene overgang
 
 ---
 
