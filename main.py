@@ -4,16 +4,28 @@ import argparse
 
 
 class RevyParser:
-    RE_SCENE_START = re.compile(r'(\\fuldscene|\\forscene)', re.DOTALL)
-    RE_SCENE_END = re.compile(r'\\forscene{}\\')
+    RE_CURLY = re.compile(r"{.*}") # Lidt dirty, da du i princippet kan have text i din \forscene{} uden at få fejl
+    RE_CURLY_EMPTY = re.compile(r"{}")
+    RE_LINEBREAK = re.compile(r"\\\\")
+    RE_FORSCENE = re.compile(r"\\forscene")
+    RE_FULDSCENE = re.compile(r"\\fuldscene")
+    RE_SCENE = re.compile('(' + RE_FORSCENE.pattern + '|' + RE_FULDSCENE.pattern + ')')
+    RE_PERFECT_SCENE = re.compile(RE_SCENE.pattern + RE_CURLY.pattern + RE_LINEBREAK.pattern)
+
     RE_TID = re.compile(r'\\tid{(\d{1,2}:\d{2})}')
-    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)', re.DOTALL)
+    RE_ITEM = re.compile(r'\\item\s.+\s\(.+\)\s(?:\\sketchrolle|\\sangrolle)')
     RE_BAND = re.compile(r'\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}', re.DOTALL)
     RE_LYDEFFEKTER = re.compile(r'\\lyd{(.+?)}')
     RE_REKVISITTER = re.compile(r'\\begin{(Rekvisitter)}(.*?)\\end{\1}', re.DOTALL)
     RE_HASHTAG = re.compile(r'#')
     RE_COLON = re.compile(r':')
     RE_GAASEOEJNE = re.compile(r'[“”]')
+    RE_BACKSLASH = re.compile(r'\\')
+    RE_DOLLARSIGN = re.compile(r'\$')
+    RE_PERCENT = re.compile(r'%')
+    RE_SEMICOLON = re.compile(r';')
+    RE_GAASEOEJNE = re.compile(r'[“”„"]')
+    RE_BEGIN_SKETCH = re.compile(r"\\begin\{Sketch}\{([^}]*)}")
 
     def __init__(self, path):
         self.path = path
@@ -47,13 +59,29 @@ class RevyParser:
         for line in self.lines:
             stripped = line.strip()
             if stripped and not stripped.startswith("%"):
-                title = stripped
+                match = self.RE_BEGIN_SKETCH.search(stripped)
+                if match:
+                    title = match.group(1)
+                else:
+                    title = stripped
                 if self.RE_HASHTAG.search(title):
                     print(f"[TITEL] Titel indeholder #: {title}")
                 if self.RE_COLON.search(title):
                     print(f"[TITEL] Titel indeholder kolon: {title}")
-                if title == "Navn":
+                if self.RE_BACKSLASH.search(title):
+                    print(f"[TITEL] Titel indeholder et backslash eller kommando {title}")
+                if self.RE_PERCENT.search(title):
+                    print(f"[TITEL] Titel indeholder et procenttegn {title}")
+                if self.RE_DOLLARSIGN.search(title):
+                    print(f"[TITEL] Titel indeholder et dollar tegn {title}")
+                if self.RE_SEMICOLON.search(title):
+                    print(f"[TITEL] Titel indeholder et semikolon {title}")
+                if self.RE_GAASEOEJNE.search(title):
+                    print(f"[TITEL] Titel indeholder gåseøjne {title}")
+                if title == "navn":
                     print(f"[TITEL] Titel er ugyldig: {title}")
+                if title.lower() != os.path.splitext(os.path.basename(self.path))[0].lower():
+                    print(f"[TITEL] Titel og filnavn er ikke det samme {title}")
                 break
 
     def check_tid(self):
@@ -102,12 +130,33 @@ class RevyParser:
             if "(R)" not in val and "(P)" not in val:
                 print(f"[REKVISIT] Rekvisit uden R/P markering: {val.strip()}")
 
+
     def check_scene_commands(self):
-        for i, line in enumerate(self.lines, start=-1):
-            if self.RE_SCENE_START.search(line):
-                print(line)
-            if self.RE_SCENE_END.search(line):
-                pass  # Slutter korrekt
+
+        last_command, last_index = "", -1
+
+        for i in range(len(self.lines)):
+            line = self.lines[i].strip()
+            if self.RE_SCENE.match(line):
+
+                if self.RE_FULDSCENE.match(line) and self.RE_CURLY_EMPTY.search(line):
+                    print(f"[SCENE] Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
+
+                if self.RE_FULDSCENE.match(line) and self.RE_FULDSCENE.match(last_command):
+                    print(f'[SCENE] Fuldscene -> fuldscene overgang fra linje {last_index+1} til linje {i+1}')
+
+                if not self.RE_PERFECT_SCENE.fullmatch(line):
+                    print(f"[SCENE] Scenekommando skal slutte med {{}}\\\\ på linje {i+1}")
+
+                prev, next = self.lines[i-1], self.lines[i+1]
+                if not (prev == "\n" and next == "\n") :
+                    print(f"[SCENE] Der skal være blanke linjer over og under \\forscene{{}} eller \\fuldscene{{}} på linje {i+1}")
+
+                last_command, last_index = line, i
+
+        # Alt skal slutte på forscenen
+        if not self.RE_FORSCENE.match(last_command):
+            print(f"[SCENE] Slutter ikke på forscenen")
 
 def main():
     parser = argparse.ArgumentParser(description="Validate .tex file")
