@@ -50,7 +50,7 @@ class RevyParser:
         self.lines = []
         self.content = ""
         self.errors: map[str, list[str]] = {} 
-        for key in ["Header", "Rekvisitter", "Persongalleri", "Lydeffekter", "Sceneskift", "Diverse", "Warnings"]:
+        for key in ["Header", "Rekvisitter", "Persongalleri", "Lydeffekter", "Sceneskift", "Diverse"]:
             self.errors[key] = []
 
     def validate(self):
@@ -75,7 +75,7 @@ class RevyParser:
     def check_filename(self):
         basename = os.path.basename(self.path)
         if " " in basename:
-            self.errors["Header"].append(f"[FILNAVN] Filnavn indeholder mellemrum: {basename}")
+            self.errors["Header"].append(f"Filnavn indeholder mellemrum: {basename}")
 
     def check_title(self):
         for line in self.lines:
@@ -171,7 +171,7 @@ class RevyParser:
 
             short_hands.append(short_hand)
 
-    def check_band(self): #TODO virker det her
+    def check_band(self):
         is_sang = False
         for line in self.lines:
             stripped = line.strip()
@@ -213,9 +213,13 @@ class RevyParser:
             self.errors["Rekvisitter"].append("Tomt rekvisitter environment. Hvis der ingen rekvisitter er, skal der ikke være noget environment")
             return
         
+        
+
         for item in items:
             if "(R)" not in item and "(P)" not in item:
                 self.errors["Rekvisitter"].append(f"Rekvisit uden R/P markering: {item}")
+        
+        self.errors["Rekvisitter"].append("Vær opmærksom på, at dine rekvisitter har tydelige mål/dimensioner")
 
     def check_scene_commands(self):
 
@@ -226,7 +230,7 @@ class RevyParser:
             if self.RE_SCENE.match(line):
 
                 if self.RE_FULDSCENE.match(line) and self.RE_CURLY_EMPTY.search(line):
-                    self.errors["Warnings"].append(f"Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
+                    self.errors["Sceneskift"].append(f"Tom \\fuldscene{{}}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje {i+1}")
 
                 if self.RE_FULDSCENE.match(line) and self.RE_FULDSCENE.match(last_command):
                     self.errors["Sceneskift"].append(f'Fuldscene -> fuldscene overgang fra linje {last_index+1} til linje {i+1}')
@@ -243,14 +247,17 @@ class RevyParser:
 
         # Alt skal slutte på forscenen
         if not self.RE_FORSCENE.match(last_command):
-            self.errors["Sceneskift"].append(f"[SCENE] Slutter ikke på forscenen")
+            self.errors["Sceneskift"].append(f"Slutter ikke på forscenen")
 
 def main():
     parser = argparse.ArgumentParser(description="Validate .tex file")
     parser.add_argument("path", nargs="+", help="Filenames or directory to check")
     args = parser.parse_args()
+    should_print = True
 
     tex_files = []
+
+    output = ""
     for path_str in args.path:
         path = Path(path_str)
         if path.is_file() and path.suffix == ".tex":
@@ -258,13 +265,28 @@ def main():
         elif path.is_dir():
             tex_files.extend(path.glob("*.tex"))
         else:
-            print(f"{path_str} er ikke en fil eller mappe")
+            output += f"{path_str} er ikke en fil eller mappe\n"
 
         for f in tex_files:
-            print(f"--- Checker {f} ---")
+            name = os.path.basename(f)
+            output += f"# {name}\n"
             validator = RevyParser(f)
             validator.validate()
-            print("\n")
+
+            for key, values in validator.errors.items():
+                if len(values) == 0: continue
+
+                output += f"\n### {key}\n"
+                for val in values:
+                    output += f"* {val}\n"
+
+            output += "\n\n### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
+            output += "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
+            output += "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
+            output += "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
+            output += "\n\n---\n\n"
+    
+    if should_print: print(output)
 
 
 
