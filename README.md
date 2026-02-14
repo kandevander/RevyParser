@@ -15,7 +15,39 @@ Der outputtes i markdown format.
 
 StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex`:
 
-`python main.py ../revy/stangdennises_sjove_sketch.tex`
+`python main.py ../revy/stangdenniss_sjove_sketch.tex`
+
+```
+# stangdenniss_sjove_sketch.tex
+
+### Header
+* Titel og filnavn er ikke det samme: Nøgenløb på Aros
+
+### Rekvisitter
+* Rekvisit uden R/P markering: \item En kost
+* Rekvisit uden R/P markering: \item Dildoen fra Husaren
+* Vær opmærksom på, at dine rekvisitter har tydelige mål/dimensioner
+
+### Persongalleri
+* Manglende \sketchrolle eller \sangrolle i rollen: \item fuwq (f)
+* Manglende \sketchrolle eller \sangrolle i rollen: \item stangdennis (f)
+* Duplikeret rolle forkortelse: (f)
+
+### Sceneskift
+* Tom \fuldscene{}. Overvej om der skal stå noget på scenen, og skriv det i krølleparenteserne. Linje 21
+* Fuldscene -> fuldscene overgang fra linje 21 til linje 27
+* Scenekommando skal slutte med {}\\ på linje 29
+* Der skal være blanke linjer over og under \forscene{} eller \fuldscene{} på linje 29
+
+
+### Når du har rettet ovenstående er du næsten færdig. Så skal du bare
+* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!
+* Gennemgå LaTjeX listen under guides/revytex på drevet
+* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)
+
+
+---
+```
 
 Pastasalaten vil gerne se fejl i alle sine sketches opbevaret i mappen `hahaLolGRINERENstads` og have outputtet som en fil, da han har skrevet 3700 fisk, og det er lidt uoverskueligt i terminalen:
 
