@@ -249,47 +249,83 @@ class RevyParser:
         if not self.RE_FORSCENE.match(last_command):
             self.errors["Sceneskift"].append(f"Slutter ikke på forscenen")
 
-def main():
-    parser = argparse.ArgumentParser(description="Validate .tex file")
-    parser.add_argument("path", nargs="+", help="Filenames or directory to check")
-    args = parser.parse_args()
-    should_print = True
-
+def collect_tex_files(paths):
     tex_files = []
-
     output = ""
-    for path_str in args.path:
+
+    for path_str in paths:
         path = Path(path_str)
+
         if path.is_file() and path.suffix == ".tex":
             tex_files.append(path)
+
         elif path.is_dir():
             tex_files.extend(path.glob("**/*.tex"))
+
         else:
             output += f"{path_str} er ikke en fil eller mappe\n"
 
-        for f in tex_files:
-            name = os.path.basename(f)
-            output += f"# {name}\n"
-            validator = RevyParser(f)
-            validator.validate()
-
-            for key, values in validator.errors.items():
-                if len(values) == 0: continue
-
-                output += f"\n### {key}\n"
-                for val in values:
-                    output += f"* {val}\n"
-
-            output += "\n\n### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
-            output += "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
-            output += "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
-            output += "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
-            output += "\n\n---\n\n"
-    
-    if should_print: print(output)
+    return tex_files, output
 
 
+def generate_report(tex_files):
+    output = ""
 
+    for f in tex_files:
+        name = os.path.basename(f)
+        output += f"# {name}\n"
+
+        validator = RevyParser(f)
+        validator.validate()
+
+        for key, values in validator.errors.items():
+            if not values:
+                continue
+
+            output += f"\n### {key}\n"
+            for val in values:
+                output += f"* {val}\n"
+
+        output += (
+            "\n\n### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
+            "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
+            "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
+            "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
+            "\n\n---\n\n"
+        )
+
+    return output
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Validate .tex file(s)")
+    parser.add_argument("path", nargs="+", help="Filenames or directory to check")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Save output to a markdown (.md) file instead of printing",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    tex_files, early_output = collect_tex_files(args.path)
+    report = early_output + generate_report(tex_files)
+
+    if args.output:
+        output_path = Path(args.output)
+
+        if output_path.suffix != ".md":
+            output_path = output_path.with_suffix(".md")
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(report)
+
+        print(f"Output saved to {output_path}")
+    else:
+        print(report)
 
 
 if __name__ == "__main__":
