@@ -5,7 +5,7 @@ Der er swær at lave revytex. Det er med denne frække sag forhåbentligt lidt n
 
 ## Hvor'n gør jeg?
 
-`python main.py <path> [-o <output_path>]`
+`python revycheck.py <path> [-o <output_path>]`
 
 Programmet læser filen/filerne på `path` og outputter eventuelle fejl/mangler til terminalen (eller til `output_path` hvis `-o` er brugt).
 
@@ -15,7 +15,7 @@ Der outputtes i markdown format.
 
 StangDennis vil gerne se fejl i filen `stangdenniss_sjove_sketch.tex` og kører følgende kommando:
 
-`python main.py revy/stangdenniss_sjove_sketch.tex`
+`python revycheck.py revy/stangdenniss_sjove_sketch.tex`
 
 Det giver følgende output i terminalen:
 
@@ -53,7 +53,7 @@ Det giver følgende output i terminalen:
 
 Pastasalaten vil gerne se fejl i alle sine sketches opbevaret i mappen `hahaLolGRINERENstads` og have outputtet som en fil, da han har skrevet 3700 fisk, og det er lidt uoverskueligt i terminalen:
 
-`python main.py revy/hahaLolGRINERENstads -o output.md`
+`python revycheck.py revy/hahaLolGRINERENstads -o output.md`
 
 Efter han har kørt kommandoen kan han finde outputtet i `output.md`
 
