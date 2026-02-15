@@ -296,13 +296,9 @@ def generate_report(tex_files):
             for val in values:
                 output += f"* {val}\n"
 
-        output += (
-            "### Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
-            "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
-            "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
-            "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
-            "---"
-        )
+            output += "\n"
+
+        output += "---\n"
 
     return output
 
@@ -323,6 +319,12 @@ def main():
 
     tex_files, early_output = collect_tex_files(args.path)
     report = early_output + generate_report(tex_files)
+    report += ("# Når du har rettet ovenstående er du næsten færdig. Så skal du bare\n"
+            "* Checke at det compiler på overleaf/lokalt. Specielt på overleaf er det vigtigt at checke warnings!\n"
+            "* Gennemgå LaTjeX listen under guides/revytex på drevet\n"
+            "* (Optional) Bunde en bajer, alt efter hvor meget du mangler endnu :)\n"
+    )
+        
 
     if args.output:
         output_path = Path(args.output)
