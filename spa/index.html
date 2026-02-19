@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <title>Revy .tex Validator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+    }
+    pre {
+      background: #f6f6f6;
+      padding: 1rem;
+      white-space: pre-wrap;
+    }
+    h2 {
+      border-bottom: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Revy .tex validator</h1>
+
+<input type="file" id="fileInput" multiple accept=".tex">
+<button id="run">Validate</button>
+
+<div id="output"></div>
+
+<script>
+class RevyParser {
+  constructor(fileName, text) {
+    this.fileName = fileName;
+    this.lines = text.split(/\r?\n/);
+    this.content = text;
+    this.errors = {
+      Header: [],
+      Rekvisitter: [],
+      Persongalleri: [],
+      Lydeffekter: [],
+      Sceneskift: [],
+      Diverse: []
+    };
+  }
+
+  // Regexes
+  static RE_CURLY = /{.*}/;
+  static RE_CURLY_EMPTY = /{}/;
+  static RE_LINEBREAK = /\\\\/;
+  static RE_FORSCENE = /\\forscene/;
+  static RE_FULDSCENE = /\\fuldscene/;
+  static RE_SCENE = /(\\forscene|\\fuldscene)/;
+  static RE_PERFECT_SCENE = /(\\forscene|\\fuldscene){.*}\\\\/;
+
+  static RE_PERSONGALLERI = /\\begin{Persongalleri}.*?\\end{Persongalleri}/s;
+  static RE_ROLE_DECLARATION = /(\\sketchrolle|\\sangrolle)/;
+  static RE_ILLEGAL_ROLE_DECL = /(\\sketchrolle|\\sangrolle){.*}/;
+
+  static RE_ITEM = /\\item\s.+/g;
+  static RE_PAREN_ITEM = /\(.+?\)/g;
+
+  static RE_REKVISITTER = /\\begin{Rekvisitter}.*?\\end{Rekvisitter}/s;
+  static RE_LYDEFFEKTER = /\\begin{Lydeffekter}.*?\\end{Lydeffekter}/s;
+  static RE_TID = /\\tid{(\d{1,2}:\d{2})}/;
+  static RE_BAND = /\\begin{Bandkommentar}(.*?)\\end{Bandkommentar}/gs;
+
+  static RE_HASHTAG = /#/;
+  static RE_COLON = /:/;
+  static RE_BACKSLASH = /\\/;
+  static RE_DOLLAR = /\$/;
+  static RE_PERCENT = /%/;
+  static RE_SEMICOLON = /;/;
+  static RE_GAASEOEJNE = /[“”„"]/;
+
+  static RE_BEGIN_SKETCH_OR_SANG =
+    /\\begin\{(?:Sketch|Sang)}(?:\[[^\]]*])?\{([^}]*)}/;
+
+  static RE_BEGIN_STROFE = /\\begin\{Strofe}/;
+
+  validate() {
+    this.checkFilename();
+    this.checkTitle();
+    this.checkTid();
+    this.checkRoles();
+    this.checkBand();
+    this.checkLydeffekter();
+    this.checkRekvisitter();
+    this.checkSceneCommands();
+    this.checkStrofe();
+  }
+
+  checkFilename() {
+    if (this.fileName.includes(" ")) {
+      this.errors.Header.push(
+        `Filnavn indeholder mellemrum: ${this.fileName}`
+      );
+    }
+  }
+
+  checkTitle() {
+    for (const line of this.lines) {
+      const stripped = line.trim();
+      if (!stripped || stripped.startsWith("%")) continue;
+
+      let title = stripped;
+      const match = stripped.match(RevyParser.RE_BEGIN_SKETCH_OR_SANG);
+      if (match) title = match[1];
+
+      const checks = [
+        [RevyParser.RE_HASHTAG, "#"],
+        [RevyParser.RE_COLON, "kolon"],
+        [RevyParser.RE_BACKSLASH, "backslash"],
+        [RevyParser.RE_PERCENT, "procent"],
+        [RevyParser.RE_DOLLAR, "dollar"],
+        [RevyParser.RE_SEMICOLON, "semikolon"],
+        [RevyParser.RE_GAASEOEJNE, "gåseøjne"]
+      ];
+
+      for (const [re, label] of checks) {
+        if (re.test(title)) {
+          this.errors.Header.push(`Titel indeholder ${label}: ${title}`);
+        }
+      }
+
+      const normalizedTitle =
+        title.toLowerCase().replace(/ /g, "_");
+      const fileBase =
+        this.fileName.replace(/\.tex$/i, "").toLowerCase();
+
+      if (normalizedTitle !== fileBase) {
+        this.errors.Header.push(
+          `Titel og filnavn er ikke det samme: ${normalizedTitle}`
+        );
+      }
+      break;
+    }
+  }
+
+  checkStrofe() {
+    const isSketch = this.lines.some(l =>
+      l.trim().startsWith("\\begin{Sketch}")
+    );
+    if (!isSketch) return;
+
+    if (RevyParser.RE_BEGIN_STROFE.test(this.content)) {
+      this.errors.Diverse.push(
+        "Strofe-miljø fundet i sketch, det er ulovligt!"
+      );
+    }
+  }
+
+  checkTid() {
+    const match = this.content.match(RevyParser.RE_TID);
+    if (!match) {
+      this.errors.Header.push("Manglende eller ulovlig \\tid");
+      return;
+    }
+
+    const tid = match[1];
+    if (tid.startsWith("0:") && parseInt(tid.split(":")[1]) < 45) {
+      this.errors.Header.push(
+        `Tidsangivelse under 45 sekunder: ${tid}`
+      );
+    }
+  }
+
+  checkRoles() {
+    const pgMatch = this.content.match(RevyParser.RE_PERSONGALLERI);
+    if (!pgMatch) {
+      this.errors.Persongalleri.push(
+        "Der mangler et persongalleri. Fyfy!"
+      );
+      return;
+    }
+
+    const pg = pgMatch[0];
+    const items = pg.match(RevyParser.RE_ITEM) || [];
+    const roles = [];
+    const shorts = [];
+
+    for (let item of items) {
+      item = item.toLowerCase();
+
+      if (!RevyParser.RE_ROLE_DECLARATION.test(item)) {
+        this.errors.Persongalleri.push(
+          `Manglende \\sketchrolle eller \\sangrolle i rollen: ${item}`
+        );
+      }
+
+      if (RevyParser.RE_ILLEGAL_ROLE_DECL.test(item)) {
+        this.errors.Persongalleri.push(
+          `Ulovlig {} efter rolle type i ${item}`
+        );
+      }
+
+      const name = item.replace("\\item", "").split(" (")[0].trim();
+      if (roles.includes(name)) {
+        this.errors.Persongalleri.push(
+          `Duplikeret rollenavn: ${name}`
+        );
+      }
+      if (name.includes(",")) {
+        this.errors.Persongalleri.push(
+          `Ulovligt komma i rollenavn: ${name}`
+        );
+      }
+      roles.push(name);
+
+      const parens = item.match(RevyParser.RE_PAREN_ITEM);
+      if (!parens) {
+        this.errors.Persongalleri.push(
+          `Glemt rolle forkortelse for rollen: ${item}`
+        );
+        continue;
+      }
+
+      const short = parens[parens.length - 1];
+      if (shorts.includes(short)) {
+        this.errors.Persongalleri.push(
+          `Duplikeret rolle forkortelse: ${short}`
+        );
+      }
+      shorts.push(short);
+    }
+  }
+
+  checkBand() {
+    const isSang = this.lines.some(l =>
+      l.trim().startsWith("\\begin{Sang}")
+    );
+    if (!isSang) return;
+
+    const matches = [...this.content.matchAll(RevyParser.RE_BAND)];
+    if (matches.length === 0) {
+      this.errors.Header.push(
+        "Sange SKAL have en bandkommentar"
+      );
+    } else {
+      for (const m of matches) {
+        if (!m[1].trim()) {
+          this.errors.Header.push(
+            "Tomt bandkommentar-miljø"
+          );
+        }
+      }
+    }
+  }
+
+  checkLydeffekter() {
+    const m = this.content.match(RevyParser.RE_LYDEFFEKTER);
+    if (!m) return;
+
+    const items = m[0].match(RevyParser.RE_ITEM) || [];
+    if (items.length === 0) {
+      this.errors.Lydeffekter.push(
+        "Tomt lydeffekter environment"
+      );
+    }
+  }
+
+  checkRekvisitter() {
+    const m = this.content.match(RevyParser.RE_REKVISITTER);
+    if (!m) return;
+
+    const items = m[0].match(RevyParser.RE_ITEM) || [];
+    if (items.length === 0) {
+      this.errors.Rekvisitter.push(
+        "Tomt rekvisitter environment"
+      );
+      return;
+    }
+
+    for (const item of items) {
+      if (!item.includes("(R)") && !item.includes("(P)")) {
+        this.errors.Rekvisitter.push(
+          `Rekvisit uden R/P markering: ${item}`
+        );
+      }
+    }
+
+    this.errors.Rekvisitter.push(
+      "Vær opmærksom på, at dine rekvisitter har tydelige mål/dimensioner"
+    );
+  }
+
+  checkSceneCommands() {
+    let lastCommand = "";
+    let lastIndex = -1;
+
+    this.lines.forEach((raw, i) => {
+      const line = raw.trim();
+      if (!RevyParser.RE_SCENE.test(line)) return;
+
+      if (
+        RevyParser.RE_FULDSCENE.test(line) &&
+        RevyParser.RE_CURLY_EMPTY.test(line)
+      ) {
+        this.errors.Sceneskift.push(
+          `Tom \\fuldscene{} på linje ${i + 1}`
+        );
+      }
+
+      if (
+        RevyParser.RE_FULDSCENE.test(line) &&
+        RevyParser.RE_FULDSCENE.test(lastCommand)
+      ) {
+        this.errors.Sceneskift.push(
+          `Fuldscene -> fuldscene overgang fra linje ${lastIndex + 1} til ${i + 1}`
+        );
+      }
+
+      if (!RevyParser.RE_PERFECT_SCENE.test(line)) {
+        this.errors.Sceneskift.push(
+          `Scenekommando skal slutte med {}\\\\ på linje ${i + 1}`
+        );
+      }
+
+      const prevBlank = !this.lines[i - 1]?.trim();
+      const nextBlank = !this.lines[i + 1]?.trim();
+      if (!prevBlank || !nextBlank) {
+        this.errors.Sceneskift.push(
+          `Der skal være blanke linjer over og under scenekommando på linje ${i + 1}`
+        );
+      }
+
+      lastCommand = line;
+      lastIndex = i;
+    });
+
+    if (!RevyParser.RE_FORSCENE.test(lastCommand)) {
+      this.errors.Sceneskift.push(
+        "Slutter ikke på forscenen"
+      );
+    }
+  }
+}
+
+// UI glue
+document.getElementById("run").onclick = async () => {
+  const files = document.getElementById("fileInput").files;
+  const out = document.getElementById("output");
+  out.innerHTML = "";
+
+  for (const file of files) {
+    if (!file.name.endsWith(".tex")) continue;
+
+    const text = await file.text();
+    const parser = new RevyParser(file.name, text);
+    parser.validate();
+
+    const pre = document.createElement("pre");
+    let report = `# ${file.name}\n\n`;
+
+    for (const [section, msgs] of Object.entries(parser.errors)) {
+      if (msgs.length === 0) continue;
+      report += `## ${section}\n`;
+      for (const m of msgs) report += `* ${m}\n`;
+      report += "\n";
+    }
+    report += "----\n";
+    pre.textContent = report;
+    out.appendChild(pre);
+  }
+};
+</script>
+
+</body>
+</html>
